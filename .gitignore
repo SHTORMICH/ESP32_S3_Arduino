@@ -1,0 +1,6 @@
+.pio
+.vscode/*
+include/README
+test/README
+lib/README
+src/main.cpp
