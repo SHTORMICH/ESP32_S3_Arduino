@@ -1,0 +1,102 @@
+#include <Arduino.h>
+
+#define BOOT_BUTTON 0
+#define EXT_BUTTON 17
+#define LED_RED 6
+#define LED_BLUE 7
+
+const unsigned long FAST_BLINK_INTERVAL = 150;
+const unsigned long SLOW_BLINK_INTERVAL = 500;
+
+const unsigned long DEBOUNCE_DELAY = 50;
+
+enum BlinkMode {
+  MODE_FAST,
+  MODE_SLOW
+};
+
+BlinkMode currentMode = MODE_SLOW;
+
+unsigned long lastBlinkTime = 0;
+bool ledState = false;
+
+struct Button {
+  uint8_t pin;
+  bool lastReading;
+  bool stableState;
+  unsigned long lastDebounceTime;
+};
+
+Button bootBtn = {BOOT_BUTTON, HIGH, HIGH, 0};
+Button extBtn  = {EXT_BUTTON,  HIGH, HIGH, 0};
+
+bool isButtonPressed(Button &btn) {
+  bool reading = digitalRead(btn.pin);
+
+  if (reading != btn.lastReading) {
+    btn.lastDebounceTime = millis();
+  }
+
+  if ((millis() - btn.lastDebounceTime) > DEBOUNCE_DELAY) {
+    if (reading != btn.stableState) {
+      btn.stableState = reading;
+
+      if (btn.stableState == LOW) {
+        btn.lastReading = reading;
+        return true;
+      }
+    }
+  }
+
+  btn.lastReading = reading;
+  return false;
+}
+
+void updateBlinking() {
+  unsigned long currentTime = millis();
+  unsigned long interval = (currentMode == MODE_FAST) ? FAST_BLINK_INTERVAL : SLOW_BLINK_INTERVAL;
+
+  if (currentTime - lastBlinkTime >= interval) {
+    lastBlinkTime = currentTime;
+    ledState = !ledState;
+
+    if (ledState) {
+      digitalWrite(LED_RED, HIGH);
+      digitalWrite(LED_BLUE, LOW);
+    } else {
+      digitalWrite(LED_RED, LOW);
+      digitalWrite(LED_BLUE, HIGH);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(BOOT_BUTTON, INPUT_PULLUP);
+  pinMode(EXT_BUTTON, INPUT_PULLUP);
+
+  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_BLUE, OUTPUT);
+
+  digitalWrite(LED_RED, LOW);
+  digitalWrite(LED_BLUE, HIGH);
+
+  Serial.println("Start");
+}
+
+void loop() {
+  // Зовнішня кнопка -> швидкий режим
+  if (isButtonPressed(extBtn)) {
+    currentMode = MODE_FAST;
+    Serial.println("FAST mode");
+  }
+
+  // BOOT -> повільний режим
+  if (isButtonPressed(bootBtn)) {
+    currentMode = MODE_SLOW;
+    Serial.println("SLOW mode");
+  }
+
+  updateBlinking();
+}
