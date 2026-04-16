@@ -8,7 +8,7 @@ constexpr int butPin = 8;
 const int LONG_PRESS_MS = 1000;
 const int DEBOUNCE_MS = 50;
 
-volatile bool buttonState = false;  // єдиний флаг з ISR
+volatile bool buttonState = false;
 
 unsigned long pressStartTime = 0;
 bool longPressHandled = false;
